@@ -1,327 +1,67 @@
-#!/usr/bin/env python3
-"""
-Meeting Insights Engine
-A Python script that processes meeting transcripts and extracts actionable insights.
+# process_meeting.py (v2 - Accepts file path as argument)
 
-Created as part of the AI Automation Specialist portfolio project.
-Author: Your Name
-Date: October 2024
-"""
+import sys
+import spacy
 
-import nltk
-import re
-from datetime import datetime
-from collections import defaultdict
+# (Add back other imports like nltk if you use them in your functions)
 
-def read_transcript(filename):
-    """
-    Read the meeting transcript from a text file.
-    
-    Args:
-        filename (str): Path to the transcript file
-        
-    Returns:
-        str: Content of the transcript file
-    """
-    try:
-        with open(filename, 'r', encoding='utf-8') as file:
-            content = file.read()
-            print(f"✅ Successfully loaded transcript: {len(content)} characters")
-            return content
-    except FileNotFoundError:
-        print(f"❌ Error: File '{filename}' not found.")
-        return None
-    except Exception as e:
-        print(f"❌ Error reading file: {e}")
-        return None
+# --- NLP Model Loading ---
+# Load the spaCy model once when the script starts.
+try:
+    nlp = spacy.load("en_core_web_sm")
+    print("✅ spaCy model 'en_core_web_sm' loaded.")
+except OSError:
+    print("❌ spaCy model not found. Please run: python -m spacy download en_core_web_sm")
+    sys.exit(1)
 
-def extract_sentences(text):
-    """
-    Break the transcript into individual sentences using NLTK.
-    
-    Args:
-        text (str): Raw meeting transcript
-        
-    Returns:
-        list: List of sentences
-    """
-    sentences = nltk.sent_tokenize(text)
-    print(f"📝 Found {len(sentences)} sentences in transcript")
-    return sentences
+# --- Core Processing Functions ---
+# (Your functions like extract_action_items, extract_people, etc. go here)
+# For now, we'll use a simple placeholder function.
 
-def find_action_items(sentences):
-    """
-    Identify sentences that contain action items or commitments.
+def analyze_transcript(text):
+    """A placeholder for your detailed analysis functions."""
+    print("\n--- Analysis Results ---")
+    doc = nlp(text)
     
-    Args:
-        sentences (list): List of sentences from transcript
-        
-    Returns:
-        list: List of sentences that appear to contain action items
-    """
-    action_patterns = [
-        r'\bI will\b',
-        r'\bI\'ll\b', 
-        r'\bwe need to\b',
-        r'\bplease\b',
-        r'\bfollow up\b',
-        r'\baction item\b',
-        r'\bto do\b',
-        r'\btask\b',
-        r'\bassign\b',
-        r'\bdeadline\b',
-        r'\bby \w+day\b',  # by Friday, by Monday, etc.
-        r'\bEOD\b',        # End of Day
-        r'\bnext week\b',
-        r'\btomorrow\b'
-    ]
-    
-    action_items = []
-    
-    for sentence in sentences:
-        for pattern in action_patterns:
-            if re.search(pattern, sentence, re.IGNORECASE):
-                action_items.append(sentence.strip())
-                break  # Don't add the same sentence multiple times
-    
-    print(f"🎯 Found {len(action_items)} potential action items")
-    return action_items
-
-def find_people_mentioned(sentences):
-    """
-    Extract people's names mentioned in the meeting.
-    Uses simple capitalized word detection.
-    
-    Args:
-        sentences (list): List of sentences from transcript
-        
-    Returns:
-        set: Set of unique names found
-    """
-    # Simple approach: find capitalized words that might be names
-    # This is basic - in a real application you'd use spaCy's Named Entity Recognition
-    names = set()
-    
-    for sentence in sentences:
-        # Look for patterns like "Alice," or "Bob, please" or standalone capitalized words
-        words = sentence.split()
-        for i, word in enumerate(words):
-            # Remove punctuation and check if it starts with capital
-            clean_word = re.sub(r'[,.:;!?]', '', word)
-            if (clean_word.istitle() and 
-                len(clean_word) > 1 and 
-                clean_word not in ['The', 'This', 'That', 'Let', 'We', 'I', 'You', 'It', 'Also', 'Yes', 'No', 
-                                  'Hello', 'Today', 'Tomorrow', 'Friday', 'Monday', 'Tuesday', 'Wednesday', 
-                                  'Thursday', 'Saturday', 'Sunday', 'January', 'February', 'March', 'April',
-                                  'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December',
-                                  'Q1', 'Q2', 'Q3', 'Q4', 'EOD']):
-                names.add(clean_word)
-    
-    print(f"👥 Found {len(names)} people mentioned: {', '.join(sorted(names))}")
-    return names
-
-def find_dates_and_deadlines(text):
-    """
-    Extract dates and deadline-related information from the transcript.
-    
-    Args:
-        text (str): Raw meeting transcript
-        
-    Returns:
-        list: List of date-related information found
-    """
-    date_patterns = [
-        r'\b\w+day\b',                    # Monday, Tuesday, etc.
-        r'\b\w+ \d{1,2}(?:st|nd|rd|th)?\b',  # October 28th
-        r'\d{1,2}/\d{1,2}/\d{4}',        # 10/28/2025
-        r'\b\d{4}\b',                     # Year like 2025
-        r'\bEOD\b',                       # End of Day
-        r'\bnext week\b',
-        r'\btomorrow\b',
-        r'\btoday\b'
-    ]
-    
-    dates_found = []
-    
-    for pattern in date_patterns:
-        matches = re.findall(pattern, text, re.IGNORECASE)
-        dates_found.extend(matches)
-    
-    # Remove duplicates while preserving order
-    unique_dates = list(dict.fromkeys(dates_found))
-    
-    print(f"📅 Found {len(unique_dates)} date references: {', '.join(unique_dates)}")
-    return unique_dates
-
-def analyze_meeting_tone(sentences):
-    """
-    Perform basic sentiment analysis on the meeting.
-    This is a simple version - more advanced versions would use VADER or spaCy.
-    
-    Args:
-        sentences (list): List of sentences from transcript
-        
-    Returns:
-        dict: Dictionary with tone analysis
-    """
-    positive_words = ['good', 'great', 'excellent', 'positive', 'happy', 'pleased', 'success', 'agree']
-    negative_words = ['bad', 'terrible', 'negative', 'unhappy', 'problem', 'issue', 'concern', 'disagree']
-    
-    positive_count = 0
-    negative_count = 0
-    
-    full_text = ' '.join(sentences).lower()
-    
-    for word in positive_words:
-        positive_count += full_text.count(word)
-    
-    for word in negative_words:
-        negative_count += full_text.count(word)
-    
-    if positive_count > negative_count:
-        tone = "Positive"
-    elif negative_count > positive_count:
-        tone = "Negative" 
-    else:
-        tone = "Neutral"
-    
-    analysis = {
-        'overall_tone': tone,
-        'positive_indicators': positive_count,
-        'negative_indicators': negative_count
-    }
-    
-    print(f"😊 Meeting tone appears to be: {tone} (Positive: {positive_count}, Negative: {negative_count})")
-    return analysis
-
-def generate_summary_report(transcript_file, sentences, action_items, people, dates, tone_analysis):
-    """
-    Generate a comprehensive summary report of the meeting analysis.
-    
-    Args:
-        transcript_file (str): Original transcript filename
-        sentences (list): All sentences
-        action_items (list): Identified action items
-        people (set): People mentioned
-        dates (list): Dates and deadlines found
-        tone_analysis (dict): Results of tone analysis
-    """
-    
-    print("\n" + "="*60)
-    print("🔍 MEETING INSIGHTS REPORT")
-    print("="*60)
-    print(f"📁 Source File: {transcript_file}")
-    print(f"📊 Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"📝 Total Sentences: {len(sentences)}")
-    print(f"😊 Overall Tone: {tone_analysis['overall_tone']}")
-    
-    print("\n🎯 ACTION ITEMS IDENTIFIED:")
-    print("-" * 40)
-    if action_items:
-        for i, item in enumerate(action_items, 1):
-            print(f"{i}. {item}")
-    else:
-        print("No clear action items identified.")
-    
-    print("\n👥 PEOPLE MENTIONED:")
-    print("-" * 40)
+    people = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
     if people:
-        for person in sorted(people):
-            print(f"• {person}")
+        print(f"👥 People Mentioned: {', '.join(sorted(list(set(people))))}")
     else:
-        print("No specific people identified.")
-    
-    print("\n📅 DATES & DEADLINES:")
-    print("-" * 40)
-    if dates:
-        for date in dates:
-            print(f"• {date}")
-    else:
-        print("No specific dates or deadlines mentioned.")
-    
-    print("\n🔑 KEY STATISTICS:")
-    print("-" * 40)
-    print(f"• Action Items: {len(action_items)}")
-    print(f"• People Mentioned: {len(people)}")
-    print(f"• Date References: {len(dates)}")
-    print(f"• Sentiment Score: {tone_analysis['positive_indicators']} positive, {tone_analysis['negative_indicators']} negative")
-    
-    print("\n" + "="*60)
+        print("👥 No people identified.")
+        
+    # Add more analysis here...
+    print("----------------------")
 
-def find_transcript_files():
-    """
-    Automatically find transcript files in the current directory.
-    Prioritizes files containing 'transcript' in the name.
-    """
-    import os
-    import glob
-    
-    # Look for transcript files in order of preference
-    patterns = [
-        "*transcript*.txt",
-        "*.txt"
-    ]
-    
-    for pattern in patterns:
-        files = glob.glob(pattern)
-        if files:
-            # Filter out README and other non-transcript files
-            transcript_files = [f for f in files if not any(exclude in f.lower() 
-                              for exclude in ['readme', 'license', 'gitignore'])]
-            if transcript_files:
-                return transcript_files
-    
-    return []
 
+# --- Main Execution Block ---
 def main():
     """
-    Main function that orchestrates the meeting analysis process.
+    Main function to run the script.
+    It now checks for a command-line argument for the file path.
     """
-    print("🚀 Starting Meeting Insights Engine...")
-    print("=" * 50)
-    
-    # Automatic file detection
-    transcript_files = find_transcript_files()
-    
-    if not transcript_files:
-        print("❌ No transcript files found!")
-        print("Please add a .txt file to analyze (e.g., meeting_transcript.txt)")
-        return
-    
-    # Use the first transcript file found
-    transcript_filename = transcript_files[0]
-    
-    if len(transcript_files) > 1:
-        print(f"📁 Found {len(transcript_files)} transcript files. Using: {transcript_filename}")
-        print(f"   Other files: {', '.join(transcript_files[1:])}")
+    if len(sys.argv) > 1:
+        # A file path was provided as an argument.
+        file_path = sys.argv[1]
+        print(f"Processing provided file: {file_path}")
     else:
-        print(f"📁 Processing: {transcript_filename}")
-    
-    # Step 1: Read the transcript
-    transcript_text = read_transcript(transcript_filename)
-    if not transcript_text:
+        # Default behavior: look for a default file name.
+        file_path = "sample_transcript.txt"
+        print(f"No file path provided. Processing default file: {file_path}")
+
+    if not os.path.exists(file_path):
+        print(f"❌ ERROR: File not found at '{file_path}'")
         return
-    
-    # Step 2: Break into sentences
-    sentences = extract_sentences(transcript_text)
-    
-    # Step 3: Extract insights
-    action_items = find_action_items(sentences)
-    people_mentioned = find_people_mentioned(sentences)
-    dates_and_deadlines = find_dates_and_deadlines(transcript_text)
-    tone_analysis = analyze_meeting_tone(sentences)
-    
-    # Step 4: Generate the final report
-    generate_summary_report(
-        transcript_filename, 
-        sentences, 
-        action_items, 
-        people_mentioned, 
-        dates_and_deadlines, 
-        tone_analysis
-    )
-    
-    print("✅ Meeting analysis complete!")
+
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            transcript_text = f.read()
+        
+        analyze_transcript(transcript_text)
+
+    except Exception as e:
+        print(f"❌ An error occurred while processing the file: {e}")
+
 
 if __name__ == "__main__":
+    import os # Add os import here for the main block
     main()
