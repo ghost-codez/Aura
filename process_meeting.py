@@ -248,6 +248,31 @@ def generate_summary_report(transcript_file, sentences, action_items, people, da
     
     print("\n" + "="*60)
 
+def find_transcript_files():
+    """
+    Automatically find transcript files in the current directory.
+    Prioritizes files containing 'transcript' in the name.
+    """
+    import os
+    import glob
+    
+    # Look for transcript files in order of preference
+    patterns = [
+        "*transcript*.txt",
+        "*.txt"
+    ]
+    
+    for pattern in patterns:
+        files = glob.glob(pattern)
+        if files:
+            # Filter out README and other non-transcript files
+            transcript_files = [f for f in files if not any(exclude in f.lower() 
+                              for exclude in ['readme', 'license', 'gitignore'])]
+            if transcript_files:
+                return transcript_files
+    
+    return []
+
 def main():
     """
     Main function that orchestrates the meeting analysis process.
@@ -255,8 +280,22 @@ def main():
     print("🚀 Starting Meeting Insights Engine...")
     print("=" * 50)
     
-    # Configuration
-    transcript_filename = "sample_transcript.txt"
+    # Automatic file detection
+    transcript_files = find_transcript_files()
+    
+    if not transcript_files:
+        print("❌ No transcript files found!")
+        print("Please add a .txt file to analyze (e.g., meeting_transcript.txt)")
+        return
+    
+    # Use the first transcript file found
+    transcript_filename = transcript_files[0]
+    
+    if len(transcript_files) > 1:
+        print(f"📁 Found {len(transcript_files)} transcript files. Using: {transcript_filename}")
+        print(f"   Other files: {', '.join(transcript_files[1:])}")
+    else:
+        print(f"📁 Processing: {transcript_filename}")
     
     # Step 1: Read the transcript
     transcript_text = read_transcript(transcript_filename)
